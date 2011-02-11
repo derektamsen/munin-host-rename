@@ -151,7 +151,7 @@ done
 
 ##### RUN MUNIN-UPDATE, MUNIN-GRAH AND MUNIN-HTML AS MUNIN USER
 echo "04 - Running munin-graph for ${HOSTNEW}"
-sudo -u munin /usr/share/munin/munin-updater
+sudo -u munin /usr/share/munin/munin-update
 check_rc "E4 - Cannot run munin-update as munin user (needs sudo privileges)."
 
 echo "05 - Running munin-graph"
