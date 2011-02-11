@@ -1,0 +1,47 @@
+
+ NAME
+
+    munin-host-rename - Rename a host in munin.
+
+ Usage
+
+    munin-host-rename <Hostgroup> <Old-Hostname> <New-Hostname>
+
+    The script will do the following:
+
+        * Create a backup of a given munin host's rrd files.
+        * Rename the files to a given hostname
+        * Purge out old html and png files
+        * Regenerate the html and png files with the new hostname.
+
+        NOTE: DISABLE MUNIN-CRON BEFORE YOU RUN THE SCIRPT.
+
+ OPTIONS
+
+    <Hostgroup>     specifies the munin group this host uses. Currently its not
+                    yet supported to rename hosts without a group.
+
+    <Old-Hostname> the old hostname or name which was used to identify the
+                    host in munin.
+
+    <New-Hostname> the new hostname to which the files should be migrated.
+
+
+ ABOUT
+
+    You need sudo privileges to run commands as munin user. You should as well
+    disable munin-cron.
+
+    I developed and tested this script on Debian/Lenny. It checks the
+    environment quite well and asks you for confirmation before it does
+    anything, so fell free to test it on other platforms too.
+
+ AUTHOR
+
+    Stefan Schlesinger http://sts.ono.at
+
+ LICENCE
+
+   The script is licensed under the terms of the GNU General Public License,
+   version 2.
+

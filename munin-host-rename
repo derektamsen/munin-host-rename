@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# (c) 2011, Stefan Schlesinger, sts@ono.at
+#
+# munin-host-rename - Rename a host in munin.
+#
+#
+# Usage:
+#
+# munin-host-rename <Hostgroup> <Old-Hostname> <New-Hostname>
+#
+
+
+
+# Configuration:
+
+RRD=/var/lib/munin
+HTML=/var/www/munin
+BACKUP=/var/tmp/munin
+
+# END
+
+
+
+########## COMMAND LINE ARGUMENTS
+GROUP=$1 ; HOST=$2 ; HOSTNEW=$3
+
+if [ $# -ne  3 ]; then
+    echo "Usage: $0 <Hostgroup> <Old-Hostname> <New-Hostname>"
+    echo "munin-host-rename - Rename a munin host."
+    echo "You need sudo privileges and should disable munin-cron."
+    exit 100
+fi
+
+########## DIRECTORIES
+RRDDIR="${RRD}/${GROUP}"
+HTMLDIR="${HTML}/${GROUP}"
+BACKDIR="${BACKUP}/${GROUP}/${HOST}"
+
+
+
+
+########## FUNCTIONS
+prompt_user() {
+read safetypin
+if [ "$safetypin" != "y" ]; then
+        echo '>>>> ABORTING MUNIN HOST RENAME, AT YOUR DISCRETION!'
+        exit 3
+fi
+}
+
+check_rc() {
+RC=$?
+if [ $RC -ne 0 ]; then
+        echo "Failed: $1"
+        echo "RC was $RC. Bailing out"
+        exit 4
+fi
+}
+
+
+
+########## USER CONFIRMATION
+echo
+echo "MUNIN-HOST-RENAME --------------------------------------------------"
+echo
+echo " * RRD  Directory   : ${RRDDIR}"
+echo " * HTML Directory   : ${HTMLDIR}"
+echo " * BACKUP Directory : ${BACKDIR}"
+echo 
+echo " * Hostgroup    : ${GROUP}"
+echo " * Old-Hostname : ${HOST}"
+echo " * New-Hostname : ${HOSTNEW}"
+echo
+echo -n "Is that correct? (y/N) "
+prompt_user
+
+
+########## SANITY CHECKS
+
+# Suppose other distributions or systems might use other paths,
+# check this until more platforms are tested.
+if [ ! -e "/etc/debian_version" ] ; then
+    echo "-- Warning --"
+    echo "You are running this script on an untested platform."
+    echo "Please check the configured directory paths."
+    exit 101
+fi
+
+# Should be run as a user, which is able to execute munin scripts
+# as munin user.
+if [ "`sudo -u munin echo`" ] ; then
+    echo 'Cannot execute command, need sudo privileges for user munin: sudo -u munin echo'
+    echo $?
+    exit 102
+fi
+
+
+# Check if all directories are writeable by the current user.
+if [ ! -w "${RRDDIR}"  ] ; then
+    echo "Cannot write to RRD-Directory: ${RRDDIR}"
+    exit 103
+fi
+
+if [ ! -w "${HTMLDIR}" ] ; then
+    echo "Cannot write to HTML-Directory: ${HTMLDIR}"
+    exit 104
+fi
+
+
+###### BACKUP DIRECTORY
+if [ -e "$BACKDIR" ] ; then
+   echo "E1 - Backup directory already exits."
+   exit 105
+fi
+
+mkdir -p $BACKDIR
+
+if [ ! -w $BACKDIR ] ; then
+    echo "Cannot write to BACKUP-Directory: ${BACKDIR}"
+    exit 106
+fi
+
+
+
+###### BACKUP RRD
+echo "01 - Creating backup in ${BACKDIR}"
+
+for i in `find $RRDDIR -iname "${HOST}-*.rrd"` ; do
+    cp $i $BACKDIR
+    check_rc "E1 - Cannot create backup of file.\ncp ${i} ${BACKDIR}"
+done
+
+
+
+###### RENAME
+echo "02 - Renaming rrd files in: ${DIR}"
+for i in `find $RRDDIR -iname "${HOST}-*.rrd"` ; do
+    new=`echo ${i}|sed -e "s/${HOST}/${HOSTNEW}/"`
+    if [ -e $new ] ; then
+        echo "Error: Won't move rrd file, destination already exits: ${new}"
+        exit 107
+    fi
+
+    echo "mv ${i} ${new}"
+    check_rc "E2 - Cannot move ${i} to ${new}."
+done
+
+##### DELETE HTML+IMAGES
+echo "03 - Deleting old images and html files."
+for i in `find ${HTMLDIR} -regextype posix-egrep -regex "${HTMLDIR}/${HOST}.*(html|png)"` ; do
+    echo "rm ${i}"
+    check_rc "E3 - Cannot delete $i."
+done
+
+##### RUN MUNIN-GRAH AND MUNIN-HTML AS MUNIN USER
+echo "04 - Running munin-graph for ${HOSTNEW}"
+sudo -u munin /usr/share/munin/munin-graph --force --host ${HOSTNEW} --week --month --year
+check_rc "E4 - Cannot run munin-graph as munin user (needs sudo privileges)."
+
+echo "05 - Running munin-html"
+sudo -u munin /usr/share/munin/munin-html 
+check_rc "E4 - Cannot run munin-html as munin user (needs sudo privileges)."
+
+###### SUCCESS
+#echo "Successfully renamed the host. New hostname: ${HOSTNEW}"
