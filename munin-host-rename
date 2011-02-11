@@ -7,17 +7,14 @@
 # Usage:
 #
 # munin-host-rename <Hostgroup> <Old-Hostname> <New-Hostname>
-#
 
 
 
-# Configuration:
-
+# Configuration
 RRD=/var/lib/munin
 HTML=/var/www/munin
 BACKUP=/var/tmp/munin
 
-# END
 
 
 
@@ -141,25 +138,29 @@ for i in `find $RRDDIR -iname "${HOST}-*.rrd"` ; do
         exit 107
     fi
 
-    echo "mv ${i} ${new}"
+    mv ${i} ${new}
     check_rc "E2 - Cannot move ${i} to ${new}."
 done
 
 ##### DELETE HTML+IMAGES
 echo "03 - Deleting old images and html files."
-for i in `find ${HTMLDIR} -regextype posix-egrep -regex "${HTMLDIR}/${HOST}.*(html|png)"` ; do
-    echo "rm ${i}"
+for i in `find ${HTMLDIR} -regextype posix-egrep -regex "${HTMLDIR}/${HOST}-.*(html|png)"` ; do
+    rm ${i}
     check_rc "E3 - Cannot delete $i."
 done
 
-##### RUN MUNIN-GRAH AND MUNIN-HTML AS MUNIN USER
+##### RUN MUNIN-UPDATE, MUNIN-GRAH AND MUNIN-HTML AS MUNIN USER
 echo "04 - Running munin-graph for ${HOSTNEW}"
-sudo -u munin /usr/share/munin/munin-graph --force --host ${HOSTNEW} --week --month --year
-check_rc "E4 - Cannot run munin-graph as munin user (needs sudo privileges)."
+sudo -u munin /usr/share/munin/munin-updater
+check_rc "E4 - Cannot run munin-update as munin user (needs sudo privileges)."
 
-echo "05 - Running munin-html"
+echo "05 - Running munin-graph"
+sudo -u munin /usr/share/munin/munin-graph --force --host ${HOSTNEW} --week --month --year
+check_rc "E5 - Cannot run munin-graph as munin user (needs sudo privileges)."
+
+echo "06 - Running munin-html"
 sudo -u munin /usr/share/munin/munin-html 
-check_rc "E4 - Cannot run munin-html as munin user (needs sudo privileges)."
+check_rc "E6 - Cannot run munin-html as munin user (needs sudo privileges)."
 
 ###### SUCCESS
-#echo "Successfully renamed the host. New hostname: ${HOSTNEW}"
+echo "Successfully renamed the host. New hostname: ${HOSTNEW}"
