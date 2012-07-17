@@ -130,7 +130,7 @@ done
 
 
 ###### RENAME
-echo "02 - Renaming rrd files in: ${DIR}"
+echo "02 - Renaming rrd files in: ${RRDDIR}"
 for i in `find $RRDDIR -iname "${HOST}-*.rrd"` ; do
     new=`echo ${i}|sed -e "s/${HOST}/${HOSTNEW}/"`
     if [ -e $new ] ; then
