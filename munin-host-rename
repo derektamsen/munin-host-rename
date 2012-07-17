@@ -76,7 +76,7 @@ prompt_user
 
 # Suppose other distributions or systems might use other paths,
 # check this until more platforms are tested.
-if [ ! -e "/etc/debian_version" -o ! -e "/etc/redhat-release" ] ; then
+if [ ! -e "/etc/debian_version" -a ! -e "/etc/redhat-release" ] ; then
     echo "-- Warning --"
     echo "You are running this script on an untested platform."
     echo "Please check the configured directory paths."
